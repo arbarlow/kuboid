@@ -1,11 +1,12 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/arbarlow/kuboid"
+	"github.com/neelance/graphql-go/relay"
+
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -16,11 +17,15 @@ var (
 func main() {
 	kingpin.Parse()
 
-	res, err := kuboid.PromQuery(*prometheusAddr)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// res, err := kuboid.PromQuery(*prometheusAddr)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	b, _ := json.Marshal(res)
-	fmt.Println(string(b))
+	http.HandleFunc("/", graphiQLHandler())
+
+	http.Handle("/query", &relay.Handler{Schema: kuboid.Schema})
+
+	log.Print("Starting GraphQL server on :8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }

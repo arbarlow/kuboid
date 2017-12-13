@@ -14,18 +14,14 @@ const reqsFmt = "sum(rate(request_count[%s])) by (source_service, destination_se
 
 type serviceGraph struct {
 	Services    map[string]struct{}
-	Connections [][]string
+	Connections []Connection
 }
 
-// type ServiceGraph struct {
-// 	Edges map[string]struct{}
-// }
-
-// type Service struct {
-// 	Name              string
-// 	SyncDependencies  map[string]struct{}
-// 	AsyncDependencies map[string]struct{}
-// }
+type Connection struct {
+	Source      string
+	Destination string
+	RPS         float64
+}
 
 var client api.Client
 
@@ -49,7 +45,7 @@ func PromQuery(addr string) (*serviceGraph, error) {
 	case model.Vector:
 		s := serviceGraph{
 			Services:    map[string]struct{}{},
-			Connections: [][]string{},
+			Connections: []Connection{},
 		}
 
 		for _, sample := range v {
@@ -57,7 +53,13 @@ func PromQuery(addr string) (*serviceGraph, error) {
 			dest := sample.Metric[model.LabelName("destination_service")]
 
 			s.Services[string(svc)] = struct{}{}
-			s.Connections = append(s.Connections, []string{string(svc), string(dest)})
+			s.Services[string(dest)] = struct{}{}
+
+			s.Connections = append(s.Connections, Connection{
+				Source:      string(svc),
+				Destination: string(dest),
+				RPS:         float64(sample.Value),
+			})
 		}
 
 		return &s, nil
